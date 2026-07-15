@@ -1,0 +1,9 @@
+.conda-env/
+node_modules/
+.next/
+out/
+.DS_Store
+*.log
+*.tsbuildinfo
+.env*
+!.env.example
