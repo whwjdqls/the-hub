@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { CalendarIcon, TimelineIcon } from "@/components/icons";
 import { members } from "@/lib/data";
+import type { Viewer } from "@/lib/auth";
 
 const navigation = [
   { href: "/", label: "Current Week", icon: CalendarIcon },
@@ -27,7 +28,13 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-export function Sidebar() {
+export function Sidebar({
+  viewer,
+  authConfigured,
+}: {
+  viewer: Viewer | null;
+  authConfigured: boolean;
+}) {
   const pathname = usePathname();
 
   return (
@@ -75,12 +82,35 @@ export function Sidebar() {
         </nav>
 
         <div className="border-t border-[#e6e6e8] px-5 py-4">
-          <div className="mb-2.5 flex -space-x-1.5">
-            {members.map((member) => (
-              <Avatar key={member.id} member={member} size="sm" className="ring-2 ring-[#fafafa]" />
-            ))}
-          </div>
-          <p className="text-[11px] text-[#737378]">5 members · Private workspace</p>
+          {viewer ? (
+            <div className="flex items-center gap-2.5">
+              <span className="grid h-7 w-7 shrink-0 place-items-center border border-[#dcdcdf] bg-[#eeeeef] text-[10px] font-medium">
+                {viewer.name.slice(-1)}
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[11px] font-medium text-[#3f3f43]">{viewer.name}</p>
+                <p className="truncate text-[10px] text-[#737378]">{viewer.email}</p>
+              </div>
+              <form action="/auth/signout" method="post">
+                <button type="submit" className="text-[10px] text-[#737378] hover:text-[#171719]">
+                  Log out
+                </button>
+              </form>
+            </div>
+          ) : authConfigured ? (
+            <Link href="/auth/login" className="text-[11px] font-medium text-[#4a4a4f] hover:text-black">
+              Log in to workspace →
+            </Link>
+          ) : (
+            <>
+              <div className="mb-2.5 flex -space-x-1.5">
+                {members.map((member) => (
+                  <Avatar key={member.id} member={member} size="sm" className="ring-2 ring-[#fafafa]" />
+                ))}
+              </div>
+              <p className="text-[11px] text-[#737378]">5 members · Demo workspace</p>
+            </>
+          )}
         </div>
       </aside>
 
@@ -95,7 +125,7 @@ export function Sidebar() {
           </span>
           HUB
         </Link>
-        <nav className="flex h-full items-center gap-5" aria-label="모바일 메뉴">
+        <nav className="flex h-full items-center gap-4" aria-label="모바일 메뉴">
           {navigation.map((item) => {
             const active = isActive(pathname, item.href);
             return (
@@ -112,6 +142,18 @@ export function Sidebar() {
               </Link>
             );
           })}
+          {authConfigured &&
+            (viewer ? (
+              <form action="/auth/signout" method="post" className="h-full">
+                <button type="submit" className="flex h-full items-center text-[10px] text-[#717176]">
+                  Logout
+                </button>
+              </form>
+            ) : (
+              <Link href="/auth/login" className="flex h-full items-center text-[10px] text-[#717176]">
+                Login
+              </Link>
+            ))}
         </nav>
       </header>
     </>

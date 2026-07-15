@@ -1,5 +1,5 @@
 export type Member = {
-  id: "minjun" | "seoyeon" | "jiho" | "yujin" | "dohyeon";
+  id: string;
   name: string;
   initial: string;
   role: string;
@@ -9,6 +9,8 @@ export type MemberProgress = {
   memberId: Member["id"];
   note: "작성" | "대기";
   comments: "완료" | "진행중";
+  passUsed: boolean;
+  passApplied: boolean;
 };
 
 export type Comment = {
@@ -47,11 +49,11 @@ export const members: Member[] = [
 ];
 
 export const weeklyProgress: MemberProgress[] = [
-  { memberId: "minjun", note: "작성", comments: "완료" },
-  { memberId: "seoyeon", note: "작성", comments: "진행중" },
-  { memberId: "jiho", note: "대기", comments: "진행중" },
-  { memberId: "yujin", note: "작성", comments: "완료" },
-  { memberId: "dohyeon", note: "작성", comments: "완료" },
+  { memberId: "minjun", note: "작성", comments: "완료", passUsed: false, passApplied: false },
+  { memberId: "seoyeon", note: "작성", comments: "진행중", passUsed: false, passApplied: false },
+  { memberId: "jiho", note: "대기", comments: "진행중", passUsed: true, passApplied: true },
+  { memberId: "yujin", note: "작성", comments: "완료", passUsed: false, passApplied: false },
+  { memberId: "dohyeon", note: "작성", comments: "완료", passUsed: false, passApplied: false },
 ];
 
 export const notes: Note[] = [
