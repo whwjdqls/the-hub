@@ -22,7 +22,7 @@ before update on public.books
 for each row execute function public.set_updated_at();
 
 alter table public.reading_notes
-add column book_id uuid references public.books(id) on delete restrict;
+add column if not exists book_id uuid references public.books(id) on delete restrict;
 
 create index if not exists reading_notes_book_id_idx on public.reading_notes (book_id);
 
