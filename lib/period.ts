@@ -7,6 +7,8 @@ export type TrackerPeriod = {
   monthLabel: string;
 };
 
+const DEFAULT_HUB_START_DATE = "2026-07-13";
+
 function datePartsInSeoul(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
@@ -23,14 +25,6 @@ function datePartsInSeoul(date: Date) {
 
 function toIsoDate(date: Date) {
   return date.toISOString().slice(0, 10);
-}
-
-function isoWeekNumber(date: Date) {
-  const target = new Date(date);
-  const day = target.getUTCDay() || 7;
-  target.setUTCDate(target.getUTCDate() + 4 - day);
-  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
-  return Math.ceil(((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
 function formatShort(date: Date) {
@@ -53,20 +47,45 @@ export function getCurrentPeriod(date = new Date()): TrackerPeriod {
   weekEndDate.setUTCDate(weekStartDate.getUTCDate() + 6);
 
   return {
-    weekNumber: isoWeekNumber(today),
-    weekStart: toIsoDate(weekStartDate),
-    weekEnd: toIsoDate(weekEndDate),
+    ...periodFromWeekStart(weekStartDate),
     monthStart: `${year}-${String(month).padStart(2, "0")}-01`,
-    dateLabel: `${formatShort(weekStartDate)} — ${formatShort(weekEndDate)} · ${year}`,
     monthLabel: `${year}년 ${month}월`,
   };
 }
 
-export const demoPeriod: TrackerPeriod = {
-  weekNumber: 24,
-  weekStart: "2026-06-08",
-  weekEnd: "2026-06-14",
-  monthStart: "2026-06-01",
-  dateLabel: "JUN 08 — JUN 14 · 2026",
-  monthLabel: "2026년 6월",
-};
+function parseIsoDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
+}
+
+export function getHubStartDate() {
+  const configured = process.env.HUB_START_DATE;
+  return /^\d{4}-\d{2}-\d{2}$/.test(configured ?? "")
+    ? configured!
+    : DEFAULT_HUB_START_DATE;
+}
+
+export function getProgramWeekNumber(weekStart: string | Date) {
+  const start = parseIsoDate(getHubStartDate());
+  const target = typeof weekStart === "string" ? parseIsoDate(weekStart) : weekStart;
+  const difference = Math.floor((target.getTime() - start.getTime()) / 604800000);
+  return Math.max(1, difference + 1);
+}
+
+export function periodFromWeekStart(value: string | Date): TrackerPeriod {
+  const weekStartDate = typeof value === "string" ? parseIsoDate(value) : new Date(value);
+  const weekEndDate = new Date(weekStartDate);
+  weekEndDate.setUTCDate(weekStartDate.getUTCDate() + 6);
+  const monthStart = `${weekStartDate.getUTCFullYear()}-${String(
+    weekStartDate.getUTCMonth() + 1,
+  ).padStart(2, "0")}-01`;
+
+  return {
+    weekNumber: getProgramWeekNumber(weekStartDate),
+    weekStart: toIsoDate(weekStartDate),
+    weekEnd: toIsoDate(weekEndDate),
+    monthStart,
+    dateLabel: `${formatShort(weekStartDate)} — ${formatShort(weekEndDate)} · ${weekStartDate.getUTCFullYear()}`,
+    monthLabel: `${weekStartDate.getUTCFullYear()}년 ${weekStartDate.getUTCMonth() + 1}월`,
+  };
+}

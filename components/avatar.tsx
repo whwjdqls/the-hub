@@ -1,12 +1,4 @@
-import type { Member } from "@/lib/data";
-
-const avatarTones: Record<string, string> = {
-  minjun: "#e8e8e8",
-  seoyeon: "#dedede",
-  jiho: "#eeeeee",
-  yujin: "#d7d7d7",
-  dohyeon: "#e3e3e3",
-};
+import type { Member } from "@/lib/models";
 
 export function Avatar({
   member,
@@ -27,7 +19,7 @@ export function Avatar({
     <span
       aria-hidden="true"
       className={`inline-flex shrink-0 items-center justify-center border border-black/5 font-medium text-[#38383b] ${sizeClass} ${className}`}
-      style={{ backgroundColor: avatarTones[member.id] ?? "#e6e6e6" }}
+      style={{ backgroundColor: "#e6e6e6" }}
     >
       {member.initial}
     </span>

@@ -3,6 +3,14 @@ import { getComplianceStatus } from "@/lib/compliance";
 import type { ProgressRow } from "@/lib/progress";
 
 export function WeekProgress({ rows }: { rows: ProgressRow[] }) {
+  if (!rows.length) {
+    return (
+      <div className="border-y border-[#e6e6e8] py-9 text-center text-[12px] text-[#717176]">
+        가입한 멤버가 아직 없습니다.
+      </div>
+    );
+  }
+
   return (
     <div className="border-y border-[#e6e6e8]">
       <table className="w-full table-fixed border-collapse text-left">

@@ -1,13 +1,16 @@
+import Link from "next/link";
+import { ArrowRightIcon } from "@/components/icons";
 import { MyStatusPanel } from "@/components/my-status-panel";
 import { NoteList } from "@/components/note-list";
 import { WeekProgress } from "@/components/week-progress";
-import { currentNotes } from "@/lib/data";
+import { getNotes } from "@/lib/notes";
 import { getDashboardState } from "@/lib/progress";
 
 export const dynamic = "force-dynamic";
 
 export default async function CurrentWeekPage() {
   const dashboard = await getDashboardState();
+  const currentNotes = await getNotes(dashboard.period.weekStart);
   const submittedCount = dashboard.rows.filter((row) => row.note === "작성").length;
   const totalCount = dashboard.rows.length;
   const completion = totalCount ? Math.round((submittedCount / totalCount) * 100) : 0;
@@ -53,7 +56,7 @@ export default async function CurrentWeekPage() {
       </section>
 
       <section className="mt-12 sm:mt-14" aria-labelledby="weekly-notes-title">
-        <div className="mb-4 flex items-end justify-between">
+        <div className="mb-4 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <div>
             <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.14em] text-[#737378]">
               Reading log
@@ -65,7 +68,16 @@ export default async function CurrentWeekPage() {
               이번 주 기록
             </h2>
           </div>
-          <span className="font-mono text-[10px] text-[#737378]">{currentNotes.length} ENTRIES</span>
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-[10px] text-[#737378]">{currentNotes.length} ENTRIES</span>
+            <Link
+              href="/notes/new"
+              className="inline-flex h-9 items-center gap-2 bg-[#171719] px-4 text-[11px] font-medium text-white hover:bg-[#303033]"
+            >
+              독서 기록 작성
+              <ArrowRightIcon className="h-3 w-3" />
+            </Link>
+          </div>
         </div>
         <NoteList notes={currentNotes} />
       </section>

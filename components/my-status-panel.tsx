@@ -1,49 +1,9 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
-import { setWeeklyStatus, useMonthlyPass } from "@/app/actions/tracker";
+import { useMonthlyPass } from "@/app/actions/tracker";
 import { getComplianceStatus } from "@/lib/compliance";
 import type { TrackerPeriod } from "@/lib/period";
 import type { DashboardState, ProgressRow } from "@/lib/progress";
-
-function SubmitButton({ children }: { children: React.ReactNode }) {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="h-8 border border-[#cdcdcf] px-3 text-[11px] font-medium text-[#55555a] hover:border-[#77777c] hover:text-[#171719] disabled:opacity-50"
-    >
-      {pending ? "저장 중…" : children}
-    </button>
-  );
-}
-
-function StatusControl({
-  label,
-  complete,
-  field,
-}: {
-  label: string;
-  complete: boolean;
-  field: "note_submitted" | "comments_completed";
-}) {
-  return (
-    <div className="flex min-h-[72px] items-center justify-between gap-4 border-b border-[#eeeeef] py-3 sm:border-b-0 sm:border-r sm:pr-5">
-      <div>
-        <p className="text-[10px] uppercase tracking-[0.1em] text-[#737378]">{label}</p>
-        <p className={`mt-1.5 text-[13px] font-medium ${complete ? "text-[#242427]" : "text-[#b4232c]"}`}>
-          {complete ? "완료" : "미완료"}
-        </p>
-      </div>
-      <form action={setWeeklyStatus}>
-        <input type="hidden" name="field" value={field} />
-        <input type="hidden" name="value" value={String(!complete)} />
-        <SubmitButton>{complete ? "되돌리기" : "완료 표시"}</SubmitButton>
-      </form>
-    </div>
-  );
-}
 
 export function MyStatusPanel({
   source,
@@ -59,7 +19,7 @@ export function MyStatusPanel({
       <div className="mt-4 flex flex-col justify-between gap-2 border-b border-[#e6e6e8] pb-4 text-[11px] text-[#717176] sm:flex-row sm:items-center">
         <span>매월 1회 · 기록 또는 댓글 미완료 시 패스로 해당 주 면제</span>
         <span className="font-mono text-[9px] uppercase tracking-[0.12em]">
-          {source === "setup-required" ? "Run Supabase migration" : "Demo data"}
+          {source === "setup-required" ? "Check Supabase migration" : "Connect Supabase"}
         </span>
       </div>
     );
@@ -80,8 +40,22 @@ export function MyStatusPanel({
       </div>
 
       <div className="grid px-3 sm:grid-cols-[1fr_1fr_1.15fr] sm:px-4">
-        <StatusControl label="Reading note" complete={row.note === "작성"} field="note_submitted" />
-        <StatusControl label="Comments" complete={row.comments === "완료"} field="comments_completed" />
+        <div className="flex min-h-[72px] items-center border-b border-[#eeeeef] py-3 sm:border-b-0 sm:border-r sm:pr-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-[#737378]">Reading note</p>
+            <p className={`mt-1.5 text-[13px] font-medium ${row.note === "작성" ? "text-[#242427]" : "text-[#b4232c]"}`}>
+              {row.note === "작성" ? "작성 완료" : "기록을 작성해주세요"}
+            </p>
+          </div>
+        </div>
+        <div className="flex min-h-[72px] items-center border-b border-[#eeeeef] py-3 sm:border-b-0 sm:border-r sm:px-5">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.1em] text-[#737378]">Comments</p>
+            <p className={`mt-1.5 text-[13px] font-medium ${row.comments === "완료" ? "text-[#242427]" : "text-[#b4232c]"}`}>
+              {row.comments === "완료" ? "참여 완료" : "댓글을 남겨주세요"}
+            </p>
+          </div>
+        </div>
         <div className="flex min-h-[72px] items-center justify-between gap-4 py-3 sm:pl-5">
           <div>
             <p className="text-[10px] uppercase tracking-[0.1em] text-[#737378]">Monthly pass</p>

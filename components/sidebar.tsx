@@ -2,27 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Avatar } from "@/components/avatar";
-import { CalendarIcon, TimelineIcon } from "@/components/icons";
-import { members } from "@/lib/data";
+import { BookIcon, CalendarIcon, TimelineIcon } from "@/components/icons";
 import type { Viewer } from "@/lib/auth";
 
 const navigation = [
   { href: "/", label: "Current Week", icon: CalendarIcon },
   { href: "/timeline", label: "Timeline", icon: TimelineIcon },
+  { href: "/books", label: "Books", icon: BookIcon },
 ];
-
-const archivedNoteSlugs = new Set([
-  "meetings-as-designed-systems",
-  "work-is-a-series-of-bets",
-  "trust-needs-context",
-  "defaults-shape-behavior",
-]);
 
 function isActive(pathname: string, href: string) {
   if (pathname.startsWith("/notes/")) {
-    const slug = pathname.split("/").filter(Boolean).at(-1) ?? "";
-    return href === (archivedNoteSlugs.has(slug) ? "/timeline" : "/");
+    return href === "/";
   }
   if (href === "/") return pathname === "/";
   return pathname.startsWith(href);
@@ -102,14 +93,7 @@ export function Sidebar({
               Log in to workspace →
             </Link>
           ) : (
-            <>
-              <div className="mb-2.5 flex -space-x-1.5">
-                {members.map((member) => (
-                  <Avatar key={member.id} member={member} size="sm" className="ring-2 ring-[#fafafa]" />
-                ))}
-              </div>
-              <p className="text-[11px] text-[#737378]">5 members · Demo workspace</p>
-            </>
+            <p className="text-[11px] leading-5 text-[#737378]">Supabase 연결 후<br />워크스페이스가 시작됩니다.</p>
           )}
         </div>
       </aside>

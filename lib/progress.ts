@@ -1,8 +1,8 @@
 import "server-only";
 
 import { getViewer, type Viewer } from "@/lib/auth";
-import { getMember, weeklyProgress, type Member } from "@/lib/data";
-import { demoPeriod, getCurrentPeriod, type TrackerPeriod } from "@/lib/period";
+import { memberFromProfile, type Member } from "@/lib/models";
+import { getCurrentPeriod, type TrackerPeriod } from "@/lib/period";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,34 +16,19 @@ export type ProgressRow = {
 };
 
 export type DashboardState = {
-  source: "demo" | "live" | "setup-required";
+  source: "live" | "setup-required" | "unconfigured";
   rows: ProgressRow[];
   period: TrackerPeriod;
   viewer: Viewer | null;
 };
 
-function demoState(): DashboardState {
-  return {
-    source: "demo",
-    period: demoPeriod,
-    viewer: null,
-    rows: weeklyProgress.map((progress) => ({
-      member: getMember(progress.memberId),
-      note: progress.note,
-      comments: progress.comments,
-      passUsed: progress.passUsed,
-      passApplied: progress.passApplied,
-      isCurrentUser: progress.memberId === "jiho",
-    })),
-  };
-}
-
 export async function getDashboardState(): Promise<DashboardState> {
-  if (!isSupabaseConfigured()) return demoState();
-
   const period = getCurrentPeriod();
+  if (!isSupabaseConfigured()) {
+    return { source: "unconfigured", period, viewer: null, rows: [] };
+  }
   const viewer = await getViewer();
-  if (!viewer) return { ...demoState(), period, source: "setup-required" };
+  if (!viewer) return { source: "setup-required", period, viewer: null, rows: [] };
 
   const supabase = await createClient();
   const [profilesResult, checkinsResult, passesResult] = await Promise.all([
@@ -59,11 +44,11 @@ export async function getDashboardState(): Promise<DashboardState> {
   ]);
 
   if (profilesResult.error || checkinsResult.error || passesResult.error) {
-    return { ...demoState(), period, viewer, source: "setup-required" };
+    return { source: "setup-required", period, viewer, rows: [] };
   }
 
   if (!profilesResult.data?.length) {
-    return { ...demoState(), period, viewer, source: "setup-required" };
+    return { source: "setup-required", period, viewer, rows: [] };
   }
 
   const checkins = new Map(
@@ -72,14 +57,8 @@ export async function getDashboardState(): Promise<DashboardState> {
   const passes = new Map((passesResult.data ?? []).map((item) => [item.user_id, item]));
   const rows: ProgressRow[] = (profilesResult.data ?? []).map((profile) => {
     const checkin = checkins.get(profile.id);
-    const displayName = profile.display_name || "Member";
     return {
-      member: {
-        id: profile.id,
-        name: displayName,
-        initial: displayName.slice(-1),
-        role: profile.role || "Member",
-      },
+      member: memberFromProfile(profile),
       note: checkin?.note_submitted ? "작성" : "대기",
       comments: checkin?.comments_completed ? "완료" : "진행중",
       passUsed: passes.has(profile.id),
