@@ -2,6 +2,20 @@ import { Avatar } from "@/components/avatar";
 import { getComplianceStatus } from "@/lib/compliance";
 import type { ProgressRow } from "@/lib/progress";
 
+const outcomeLabel = {
+  pending: "대기",
+  submitted: "제출",
+  late: "지각",
+  exempt: "면제",
+} as const;
+
+function outcomeClass(status: ProgressRow["note"]) {
+  if (status === "late") return "font-medium text-[#b26a00]";
+  if (status === "exempt") return "font-medium text-[#66666b]";
+  if (status === "submitted") return "font-medium text-[#2c2c2f]";
+  return "text-[#8a8a8f]";
+}
+
 export function WeekProgress({ rows }: { rows: ProgressRow[] }) {
   if (!rows.length) {
     return (
@@ -25,8 +39,6 @@ export function WeekProgress({ rows }: { rows: ProgressRow[] }) {
         <tbody>
           {rows.map((progress, index) => {
             const member = progress.member;
-            const noteDone = progress.note === "작성";
-            const commentsDone = progress.comments === "완료";
             const compliance = getComplianceStatus(progress);
 
             return (
@@ -44,15 +56,13 @@ export function WeekProgress({ rows }: { rows: ProgressRow[] }) {
                   </div>
                 </td>
                 <td>
-                  <span className={noteDone ? "font-medium text-[#2c2c2f]" : "text-[#737378]"}>
-                    {progress.note}
+                  <span className={outcomeClass(progress.note)}>
+                    {outcomeLabel[progress.note]}
                   </span>
                 </td>
                 <td>
-                  <span
-                    className={commentsDone ? "font-medium text-[#2c2c2f]" : "text-[#717176]"}
-                  >
-                    {progress.comments}
+                  <span className={outcomeClass(progress.comments)}>
+                    {outcomeLabel[progress.comments]}
                   </span>
                 </td>
                 <td>
@@ -60,7 +70,9 @@ export function WeekProgress({ rows }: { rows: ProgressRow[] }) {
                     <span className="font-semibold text-[#d1242f]">경고!!</span>
                   )}
                   {compliance === "exempt" && (
-                    <span className="text-[11px] font-medium text-[#303033]">패스 사용 · 면제</span>
+                    <span className="text-[11px] font-medium text-[#303033]">
+                      {progress.passApplied ? "패스 사용 · 면제" : "댓글 대상 없음 · 면제"}
+                    </span>
                   )}
                   {compliance === "complete" && (
                     <span className="text-[11px] text-[#717176]">

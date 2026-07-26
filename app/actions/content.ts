@@ -2,7 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getCurrentPeriod } from "@/lib/period";
+import {
+  getCurrentPeriod,
+  getOutcomeForDate,
+  getPreviousPeriods,
+} from "@/lib/period";
 import type { BookStatus } from "@/lib/models";
 import { authenticatedClient } from "@/lib/supabase/authenticated";
 
@@ -21,23 +25,44 @@ async function setWeeklyCompletion(
   userId: string,
   field: "note_submitted" | "comments_completed",
   value: boolean,
+  weekStart = getCurrentPeriod().weekStart,
+  forcedStatus?: "submitted" | "late" | "exempt",
 ) {
-  const period = getCurrentPeriod();
+  const statusField = field === "note_submitted" ? "note_status" : "comments_status";
+  const timestampField =
+    field === "note_submitted" ? "note_submitted_at" : "comments_completed_at";
   const { data: existing, error: readError } = await supabase
     .from("weekly_checkins")
-    .select("note_submitted, comments_completed")
+    .select("note_submitted, comments_completed, note_status, comments_status, note_submitted_at, comments_completed_at")
     .eq("user_id", userId)
-    .eq("week_start", period.weekStart)
+    .eq("week_start", weekStart)
     .maybeSingle();
   if (readError) throw new Error("이번 주 상태를 확인하지 못했습니다.");
+  const existingStatus =
+    field === "note_submitted" ? existing?.note_status : existing?.comments_status;
+  const existingTimestamp =
+    field === "note_submitted"
+      ? existing?.note_submitted_at
+      : existing?.comments_completed_at;
+  const calculatedStatus = forcedStatus ?? getOutcomeForDate(weekStart);
+  const nextStatus =
+    existingStatus === "exempt"
+      ? "exempt"
+      : value && existingStatus === "submitted"
+      ? existingStatus
+      : value
+        ? calculatedStatus
+        : "pending";
 
   const { error } = await supabase.from("weekly_checkins").upsert(
     {
       user_id: userId,
-      week_start: period.weekStart,
+      week_start: weekStart,
       note_submitted: existing?.note_submitted ?? false,
       comments_completed: existing?.comments_completed ?? false,
       [field]: value,
+      [statusField]: nextStatus,
+      [timestampField]: value ? (existingTimestamp ?? new Date().toISOString()) : null,
     },
     { onConflict: "user_id,week_start" },
   );
@@ -93,6 +118,14 @@ export async function createReadingNote(formData: FormData) {
   const summary = stringValue(formData, "summary");
   const body = stringValue(formData, "body");
   const selection = stringValue(formData, "bookSelection");
+  const weekStart = stringValue(formData, "weekStart") || getCurrentPeriod().weekStart;
+  const currentPeriod = getCurrentPeriod();
+  const allowedWeeks = new Set(
+    getPreviousPeriods(Math.min(8, currentPeriod.weekNumber)).map(
+      (period) => period.weekStart,
+    ),
+  );
+  if (!allowedWeeks.has(weekStart)) redirect(errorPath("/notes/new", "선택한 주차가 올바르지 않습니다."));
   if (!title || title.length > 160) redirect(errorPath("/notes/new", "기록 제목을 입력해주세요."));
   if (!body) redirect(errorPath("/notes/new", "기록 본문을 입력해주세요."));
 
@@ -115,7 +148,6 @@ export async function createReadingNote(formData: FormData) {
     book = data;
   }
 
-  const period = getCurrentPeriod();
   const { data: note, error } = await supabase
     .from("reading_notes")
     .insert({
@@ -123,7 +155,7 @@ export async function createReadingNote(formData: FormData) {
       book_id: book.id,
       book_title: book.title,
       book_author: book.author,
-      week_start: period.weekStart,
+      week_start: weekStart,
       title,
       summary,
       body,
@@ -133,10 +165,13 @@ export async function createReadingNote(formData: FormData) {
   if (error || !note) redirect(errorPath("/notes/new", "독서 기록을 저장하지 못했습니다."));
 
   // The note itself is already saved. A check-in failure must not trap the user on the form.
-  await setWeeklyCompletion(supabase, userId, "note_submitted", true).catch(() => undefined);
+  await setWeeklyCompletion(supabase, userId, "note_submitted", true, weekStart).catch(
+    () => undefined,
+  );
   revalidatePath("/");
   revalidatePath("/timeline");
   revalidatePath("/books");
+  revalidatePath("/history");
   redirect(`/notes/${note.id}`);
 }
 
@@ -190,6 +225,7 @@ export async function updateReadingNote(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/timeline");
   revalidatePath("/books");
+  revalidatePath("/history");
   redirect(`/notes/${noteId}`);
 }
 
@@ -212,21 +248,29 @@ export async function deleteReadingNote(formData: FormData) {
     .eq("user_id", userId);
   if (error) redirect(errorPath(`/notes/${noteId}`, "독서 기록을 삭제하지 못했습니다."));
 
-  const period = getCurrentPeriod();
-  if (note.week_start === period.weekStart) {
-    const { count } = await supabase
-      .from("reading_notes")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", userId)
-      .eq("week_start", period.weekStart);
-    await setWeeklyCompletion(supabase, userId, "note_submitted", Boolean(count)).catch(
-      () => undefined,
-    );
-  }
+  const { data: remainingNote } = await supabase
+    .from("reading_notes")
+    .select("created_at")
+    .eq("user_id", userId)
+    .eq("week_start", note.week_start)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  await setWeeklyCompletion(
+    supabase,
+    userId,
+    "note_submitted",
+    Boolean(remainingNote),
+    note.week_start,
+    remainingNote
+      ? getOutcomeForDate(note.week_start, new Date(remainingNote.created_at))
+      : undefined,
+  ).catch(() => undefined);
 
   revalidatePath("/");
   revalidatePath("/timeline");
   revalidatePath("/books");
+  revalidatePath("/history");
   redirect("/");
 }
 
@@ -237,6 +281,14 @@ export async function addComment(formData: FormData) {
     redirect(`/notes/${noteId || "unknown"}?error=${encodeURIComponent("댓글 내용을 확인해주세요.")}`);
   }
   const { supabase, userId } = await authenticatedClient();
+  const { data: targetNote, error: noteError } = await supabase
+    .from("reading_notes")
+    .select("week_start")
+    .eq("id", noteId)
+    .maybeSingle();
+  if (noteError || !targetNote) {
+    redirect(`/notes/${noteId}?error=${encodeURIComponent("댓글을 달 기록을 찾지 못했습니다.")}`);
+  }
   const { error } = await supabase.from("comments").insert({
     note_id: noteId,
     user_id: userId,
@@ -244,9 +296,16 @@ export async function addComment(formData: FormData) {
   });
   if (error) redirect(`/notes/${noteId}?error=${encodeURIComponent("댓글을 저장하지 못했습니다.")}`);
 
-  await setWeeklyCompletion(supabase, userId, "comments_completed", true).catch(() => undefined);
+  await setWeeklyCompletion(
+    supabase,
+    userId,
+    "comments_completed",
+    true,
+    targetNote.week_start,
+  ).catch(() => undefined);
   revalidatePath(`/notes/${noteId}`);
   revalidatePath("/");
+  revalidatePath("/history");
   redirect(`/notes/${noteId}#discussion`);
 }
 
@@ -270,6 +329,7 @@ export async function updateComment(formData: FormData) {
     redirect(`/notes/${noteId}?error=${encodeURIComponent("댓글을 수정하지 못했습니다.")}#discussion`);
   }
   revalidatePath(`/notes/${noteId}`);
+  revalidatePath("/history");
   redirect(`/notes/${noteId}#discussion`);
 }
 
@@ -278,6 +338,11 @@ export async function deleteComment(formData: FormData) {
   const commentId = stringValue(formData, "commentId");
   if (!noteId || !commentId) redirect("/");
   const { supabase, userId } = await authenticatedClient();
+  const { data: targetNote } = await supabase
+    .from("reading_notes")
+    .select("week_start")
+    .eq("id", noteId)
+    .maybeSingle();
   const { data: comment, error: readError } = await supabase
     .from("comments")
     .select("id, created_at")
@@ -297,26 +362,34 @@ export async function deleteComment(formData: FormData) {
     redirect(`/notes/${noteId}?error=${encodeURIComponent("댓글을 삭제하지 못했습니다.")}#discussion`);
   }
 
-  const period = getCurrentPeriod();
-  const boundaryStart = `${period.weekStart}T23:59:00+09:00`;
-  const boundaryEnd = `${period.weekEnd}T23:59:00+09:00`;
-  const deletedAt = new Date(comment.created_at).getTime();
-  if (
-    deletedAt >= new Date(boundaryStart).getTime() &&
-    deletedAt < new Date(boundaryEnd).getTime()
-  ) {
-    const { count } = await supabase
+  if (targetNote) {
+    const { data: weekNotes } = await supabase
+      .from("reading_notes")
+      .select("id")
+      .eq("week_start", targetNote.week_start);
+    const noteIds = (weekNotes ?? []).map((note) => note.id);
+    const { data: remainingComment } = await supabase
       .from("comments")
-      .select("id", { count: "exact", head: true })
+      .select("created_at")
       .eq("user_id", userId)
-      .gte("created_at", boundaryStart)
-      .lt("created_at", boundaryEnd);
-    await setWeeklyCompletion(supabase, userId, "comments_completed", Boolean(count)).catch(
-      () => undefined,
-    );
+      .in("note_id", noteIds.length ? noteIds : ["00000000-0000-0000-0000-000000000000"])
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    await setWeeklyCompletion(
+      supabase,
+      userId,
+      "comments_completed",
+      Boolean(remainingComment),
+      targetNote.week_start,
+      remainingComment
+        ? getOutcomeForDate(targetNote.week_start, new Date(remainingComment.created_at))
+        : undefined,
+    ).catch(() => undefined);
   }
 
   revalidatePath(`/notes/${noteId}`);
   revalidatePath("/");
+  revalidatePath("/history");
   redirect(`/notes/${noteId}#discussion`);
 }

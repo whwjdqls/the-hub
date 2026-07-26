@@ -20,9 +20,11 @@ type InitialNote = {
 export function NoteForm({
   books,
   initialNote,
+  periods = [],
 }: {
   books: Book[];
   initialNote?: InitialNote;
+  periods?: Array<{ weekStart: string; weekNumber: number; dateLabel: string }>;
 }) {
   const initialBookExists = books.some((book) => book.id === initialNote?.bookId);
   const [selection, setSelection] = useState(
@@ -90,6 +92,18 @@ export function NoteForm({
           </p>
         </div>
         <div className="space-y-5">
+          {!initialNote && periods.length > 0 && (
+            <label className="block text-[11px] font-medium text-[#55555a]">
+              기록 주차
+              <select name="weekStart" className={inputClass} defaultValue={periods[0].weekStart}>
+                {periods.map((period, index) => (
+                  <option key={period.weekStart} value={period.weekStart}>
+                    Week {period.weekNumber} · {period.dateLabel}{index > 0 ? " · 지각 제출" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="block text-[11px] font-medium text-[#55555a]">
             제목
             <input

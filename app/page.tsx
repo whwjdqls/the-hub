@@ -11,7 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function CurrentWeekPage() {
   const dashboard = await getDashboardState();
   const currentNotes = await getNotes(dashboard.period.weekStart);
-  const submittedCount = dashboard.rows.filter((row) => row.note === "작성").length;
+  const submittedCount = dashboard.rows.filter(
+    (row) => row.note === "submitted" || row.note === "late",
+  ).length;
   const totalCount = dashboard.rows.length;
   const completion = totalCount ? Math.round((submittedCount / totalCount) * 100) : 0;
   const viewerRow = dashboard.rows.find((row) => row.isCurrentUser) ?? null;

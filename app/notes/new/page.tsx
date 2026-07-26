@@ -3,7 +3,7 @@ import Link from "next/link";
 import { NoteForm } from "@/app/notes/new/note-form";
 import { ArrowLeftIcon } from "@/components/icons";
 import { getViewerBooks } from "@/lib/books";
-import { getCurrentPeriod } from "@/lib/period";
+import { getCurrentPeriod, getPreviousPeriods } from "@/lib/period";
 
 export const metadata: Metadata = {
   title: "독서 기록 작성",
@@ -18,6 +18,7 @@ export default async function NewNotePage({
 }) {
   const [{ error }, books] = await Promise.all([searchParams, getViewerBooks()]);
   const period = getCurrentPeriod();
+  const periods = getPreviousPeriods(Math.min(8, period.weekNumber));
 
   return (
     <main className="mx-auto w-full max-w-[920px] px-5 pb-24 pt-8 sm:px-8 sm:pt-11 md:px-10 md:pt-12 lg:px-14">
@@ -35,7 +36,7 @@ export default async function NewNotePage({
         <p className="mt-2 text-[13px] text-[#717176]">한 권의 책에는 여러 개의 기록을 이어서 남길 수 있습니다.</p>
         {error && <p className="mt-5 border-l-2 border-[#d1242f] pl-3 text-[12px] text-[#b4232c]">{error}</p>}
       </header>
-      <NoteForm books={books} />
+      <NoteForm books={books} periods={periods} />
     </main>
   );
 }

@@ -6,6 +6,7 @@ export function getComplianceStatus(
   progress: Pick<ProgressRow, "note" | "comments" | "passApplied">,
 ): ComplianceStatus {
   if (progress.passApplied) return "exempt";
-  if (progress.note !== "작성" || progress.comments !== "완료") return "warning";
+  if (progress.note === "pending" || progress.comments === "pending") return "warning";
+  if (progress.note === "exempt" || progress.comments === "exempt") return "exempt";
   return "complete";
 }

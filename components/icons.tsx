@@ -31,6 +31,15 @@ export function TimelineIcon(props: IconProps) {
   );
 }
 
+export function HistoryIcon(props: IconProps) {
+  return (
+    <svg {...shared} {...props}>
+      <path d="M4 5h16M4 12h16M4 19h16" />
+      <path d="m7 5 1 1 2-2M7 12l1 1 2-2M7 19l1 1 2-2" />
+    </svg>
+  );
+}
+
 export function ArrowLeftIcon(props: IconProps) {
   return (
     <svg {...shared} {...props}>

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookIcon, CalendarIcon, TimelineIcon } from "@/components/icons";
+import { BookIcon, CalendarIcon, HistoryIcon, TimelineIcon } from "@/components/icons";
 import type { Viewer } from "@/lib/auth";
 
 const navigation = [
   { href: "/", label: "Current Week", icon: CalendarIcon },
   { href: "/timeline", label: "Timeline", icon: TimelineIcon },
+  { href: "/history", label: "History", icon: HistoryIcon },
   { href: "/books", label: "Books", icon: BookIcon },
 ];
 

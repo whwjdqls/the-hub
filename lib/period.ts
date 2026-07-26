@@ -85,6 +85,29 @@ export function getProgramWeekNumber(weekStart: string | Date) {
   return Math.max(1, difference + 1);
 }
 
+export function getWeekDeadline(weekStart: string) {
+  const nextMonday = parseIsoDate(weekStart);
+  nextMonday.setUTCDate(nextMonday.getUTCDate() + 7);
+  return new Date(`${toIsoDate(nextMonday)}T23:59:00+09:00`);
+}
+
+export function getOutcomeForDate(
+  weekStart: string,
+  date = new Date(),
+): "submitted" | "late" {
+  return date.getTime() < getWeekDeadline(weekStart).getTime() ? "submitted" : "late";
+}
+
+export function getPreviousPeriods(count = 1) {
+  const current = getCurrentPeriod();
+  const currentStart = parseIsoDate(current.weekStart);
+  return Array.from({ length: count }, (_, index) => {
+    const start = new Date(currentStart);
+    start.setUTCDate(currentStart.getUTCDate() - index * 7);
+    return periodFromWeekStart(start);
+  });
+}
+
 export function periodFromWeekStart(value: string | Date): TrackerPeriod {
   const weekStartDate = typeof value === "string" ? parseIsoDate(value) : new Date(value);
   const weekEndDate = new Date(weekStartDate);

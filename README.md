@@ -6,6 +6,7 @@
 
 - `/` — 멤버별 주간 진행률, 미이행 경고, 월간 패스와 이번 주 독서 기록
 - `/timeline` — 주차별 독서 기록 아카이브
+- `/history` — 주차별 제출, 지각, 면제 상태
 - `/notes/new` — 기존 책을 선택하거나 새 책을 등록해 독서 기록 작성
 - `/notes/[id]` — 독서 기록 본문과 GitHub Issues 스타일 댓글 토론
 - `/books` — 멤버별 읽는 중, 완료, 읽을 예정 책장
@@ -25,6 +26,9 @@
 - 본문에서 문장을 선택한 뒤 굵게 또는 하이라이트 서식을 적용할 수 있습니다.
 - 작성자는 본인의 독서 기록과 댓글을 수정하거나 삭제할 수 있습니다.
 - 독서 기록 제출 후 저장된 기록의 상세 화면으로 이동합니다.
+- 기한 내 완료는 `제출`, 월요일 23:59 이후 완료는 `지각`으로 기록됩니다.
+- 본인 패스 사용 시 Note와 Comments가 모두 면제됩니다.
+- 다른 멤버의 기한 내 기록이 하나도 없어 댓글을 달 대상이 없으면 Comments가 자동 면제됩니다.
 
 ## 월간 패스 규칙
 
@@ -55,6 +59,7 @@ npm run dev
 2. SQL Editor에서 아래 파일을 순서대로 한 번씩 실행합니다.
    - `supabase/migrations/20260715000000_initial_schema.sql`
    - `supabase/migrations/20260715010000_add_books.sql`
+   - `supabase/migrations/20260727000000_add_weekly_outcomes.sql`
 3. `.env.example`을 `.env.local`로 복사하고 프로젝트 URL, Publishable Key, 팀 초대 코드를 입력합니다.
 4. Authentication → URL Configuration에 아래 주소를 등록합니다.
    - 로컬 Site URL: `http://localhost:3000`

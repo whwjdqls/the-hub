@@ -36,23 +36,39 @@ export function MyStatusPanel({
           </span>
         </div>
         {compliance === "warning" && <span className="text-[12px] font-semibold text-[#d1242f]">경고!!</span>}
-        {compliance === "exempt" && <span className="text-[11px] font-medium">패스 사용 · 면제</span>}
+        {compliance === "exempt" && (
+          <span className="text-[11px] font-medium">
+            {row.passApplied ? "패스 사용 · 면제" : "댓글 대상 없음 · 면제"}
+          </span>
+        )}
       </div>
 
       <div className="grid px-3 sm:grid-cols-[1fr_1fr_1.15fr] sm:px-4">
         <div className="flex min-h-[72px] items-center border-b border-[#eeeeef] py-3 sm:border-b-0 sm:border-r sm:pr-5">
           <div>
             <p className="text-[10px] uppercase tracking-[0.1em] text-[#737378]">Reading note</p>
-            <p className={`mt-1.5 text-[13px] font-medium ${row.note === "작성" ? "text-[#242427]" : "text-[#b4232c]"}`}>
-              {row.note === "작성" ? "작성 완료" : "기록을 작성해주세요"}
+            <p className={`mt-1.5 text-[13px] font-medium ${row.note === "pending" ? "text-[#b4232c]" : "text-[#242427]"}`}>
+              {row.note === "submitted"
+                ? "제출"
+                : row.note === "late"
+                  ? "지각"
+                  : row.note === "exempt"
+                    ? "면제"
+                    : "기록을 작성해주세요"}
             </p>
           </div>
         </div>
         <div className="flex min-h-[72px] items-center border-b border-[#eeeeef] py-3 sm:border-b-0 sm:border-r sm:px-5">
           <div>
             <p className="text-[10px] uppercase tracking-[0.1em] text-[#737378]">Comments</p>
-            <p className={`mt-1.5 text-[13px] font-medium ${row.comments === "완료" ? "text-[#242427]" : "text-[#b4232c]"}`}>
-              {row.comments === "완료" ? "참여 완료" : "댓글을 남겨주세요"}
+            <p className={`mt-1.5 text-[13px] font-medium ${row.comments === "pending" ? "text-[#b4232c]" : "text-[#242427]"}`}>
+              {row.comments === "submitted"
+                ? "제출"
+                : row.comments === "late"
+                  ? "지각"
+                  : row.comments === "exempt"
+                    ? "면제"
+                    : "댓글을 남겨주세요"}
             </p>
           </div>
         </div>
