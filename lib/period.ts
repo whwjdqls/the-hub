@@ -8,6 +8,7 @@ export type TrackerPeriod = {
 };
 
 const DEFAULT_HUB_START_DATE = "2026-07-13";
+export const WEEK_BOUNDARY_LABEL = "월요일 23:59";
 
 function datePartsInSeoul(date: Date) {
   const parts = new Intl.DateTimeFormat("en-CA", {
@@ -15,12 +16,21 @@ function datePartsInSeoul(date: Date) {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
   }).formatToParts(date);
 
   const value = (type: Intl.DateTimeFormatPartTypes) =>
     Number(parts.find((part) => part.type === type)?.value ?? 0);
 
-  return { year: value("year"), month: value("month"), day: value("day") };
+  return {
+    year: value("year"),
+    month: value("month"),
+    day: value("day"),
+    hour: value("hour"),
+    minute: value("minute"),
+  };
 }
 
 function toIsoDate(date: Date) {
@@ -38,13 +48,16 @@ function formatShort(date: Date) {
 }
 
 export function getCurrentPeriod(date = new Date()): TrackerPeriod {
-  const { year, month, day } = datePartsInSeoul(date);
+  const { year, month, day, hour, minute } = datePartsInSeoul(date);
   const today = new Date(Date.UTC(year, month - 1, day));
   const isoDay = today.getUTCDay() || 7;
   const weekStartDate = new Date(today);
   weekStartDate.setUTCDate(today.getUTCDate() - isoDay + 1);
-  const weekEndDate = new Date(weekStartDate);
-  weekEndDate.setUTCDate(weekStartDate.getUTCDate() + 6);
+
+  // Monday belongs to the previous tracking week until the 23:59 KST boundary.
+  if (isoDay === 1 && (hour < 23 || (hour === 23 && minute < 59))) {
+    weekStartDate.setUTCDate(weekStartDate.getUTCDate() - 7);
+  }
 
   return {
     ...periodFromWeekStart(weekStartDate),
@@ -75,7 +88,7 @@ export function getProgramWeekNumber(weekStart: string | Date) {
 export function periodFromWeekStart(value: string | Date): TrackerPeriod {
   const weekStartDate = typeof value === "string" ? parseIsoDate(value) : new Date(value);
   const weekEndDate = new Date(weekStartDate);
-  weekEndDate.setUTCDate(weekStartDate.getUTCDate() + 6);
+  weekEndDate.setUTCDate(weekStartDate.getUTCDate() + 7);
   const monthStart = `${weekStartDate.getUTCFullYear()}-${String(
     weekStartDate.getUTCMonth() + 1,
   ).padStart(2, "0")}-01`;
@@ -85,7 +98,7 @@ export function periodFromWeekStart(value: string | Date): TrackerPeriod {
     weekStart: toIsoDate(weekStartDate),
     weekEnd: toIsoDate(weekEndDate),
     monthStart,
-    dateLabel: `${formatShort(weekStartDate)} — ${formatShort(weekEndDate)} · ${weekStartDate.getUTCFullYear()}`,
+    dateLabel: `${formatShort(weekStartDate)} 23:59 — ${formatShort(weekEndDate)} 23:59 · ${weekStartDate.getUTCFullYear()}`,
     monthLabel: `${weekStartDate.getUTCFullYear()}년 ${weekStartDate.getUTCMonth() + 1}월`,
   };
 }

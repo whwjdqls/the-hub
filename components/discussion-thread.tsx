@@ -1,8 +1,18 @@
 import { addComment } from "@/app/actions/content";
 import { Avatar } from "@/components/avatar";
+import { CommentControls } from "@/components/comment-controls";
+import { SubmitButton } from "@/components/submit-button";
 import type { Member, NoteComment } from "@/lib/models";
 
-function CommentCard({ comment }: { comment: NoteComment }) {
+function CommentCard({
+  comment,
+  noteId,
+  isOwner,
+}: {
+  comment: NoteComment;
+  noteId: string;
+  isOwner: boolean;
+}) {
   return (
     <article className="relative grid grid-cols-[32px_minmax(0,1fr)] gap-3 sm:gap-4">
       <Avatar member={comment.author} size="lg" className="relative z-10" />
@@ -12,6 +22,15 @@ function CommentCard({ comment }: { comment: NoteComment }) {
           <span>· {comment.dateLabel}</span>
         </header>
         <p className="whitespace-pre-wrap px-3 py-3.5 text-[13px] leading-6 text-[#36363a] sm:px-4 sm:py-4 sm:text-[14px]">{comment.body}</p>
+        {isOwner && (
+          <div className="border-t border-[#eeeeef] px-3 py-2 sm:px-4">
+            <CommentControls
+              noteId={noteId}
+              commentId={comment.id}
+              initialBody={comment.body}
+            />
+          </div>
+        )}
       </div>
     </article>
   );
@@ -37,7 +56,14 @@ export function DiscussionThread({
 
       {comments.length ? (
         <div className="relative space-y-4 before:absolute before:bottom-4 before:left-[15.5px] before:top-4 before:w-px before:bg-[#e4e4e6]">
-          {comments.map((comment) => <CommentCard key={comment.id} comment={comment} />)}
+          {comments.map((comment) => (
+            <CommentCard
+              key={comment.id}
+              comment={comment}
+              noteId={noteId}
+              isOwner={comment.author.id === currentMember.id}
+            />
+          ))}
         </div>
       ) : (
         <div className="border-y border-[#e6e6e8] py-8 text-center text-[13px] text-[#717176]">아직 댓글이 없습니다. 첫 의견을 남겨보세요.</div>
@@ -59,7 +85,11 @@ export function DiscussionThread({
             className="block min-h-28 w-full resize-y border border-[#cdcdcf] bg-white px-3.5 py-3 text-[13px] leading-6 text-[#2e2e31] outline-none placeholder:text-[#77777c] focus:border-[#5d5d61] sm:text-[14px]"
           />
           <div className="mt-2.5 flex justify-end">
-            <button type="submit" className="h-8 border border-[#171719] bg-[#171719] px-4 text-[11px] font-medium text-white hover:bg-[#303033]">Comment</button>
+            <SubmitButton
+              idleLabel="Comment"
+              pendingLabel="등록 중…"
+              className="h-8 border border-[#171719] bg-[#171719] px-4 text-[11px] font-medium text-white hover:bg-[#303033]"
+            />
           </div>
         </div>
       </form>

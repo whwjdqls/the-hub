@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Avatar } from "@/components/avatar";
 import { DiscussionThread } from "@/components/discussion-thread";
 import { ArrowLeftIcon, BookIcon } from "@/components/icons";
+import { NoteControls } from "@/components/note-controls";
+import { RichText } from "@/components/rich-text";
 import { getViewer } from "@/lib/auth";
 import type { Member } from "@/lib/models";
 import { getNote } from "@/lib/notes";
@@ -35,14 +37,17 @@ export default async function NoteDetailPage({ params, searchParams }: NotePageP
     initial: viewer.name.slice(-1),
     role: "Member",
   };
-  const paragraphs = note.body.split(/\n\s*\n/).filter(Boolean);
+  const isOwner = note.author.id === viewer.id;
 
   return (
     <main className="mx-auto w-full max-w-[900px] px-5 pb-24 pt-8 sm:px-8 sm:pt-11 md:px-10 md:pt-12 lg:px-14">
-      <Link href={isCurrentWeek ? "/" : "/timeline"} className="mb-10 inline-flex h-8 items-center gap-1.5 text-[12px] text-[#77777c] hover:text-[#171719]">
-        <ArrowLeftIcon className="h-3.5 w-3.5" />
-        {isCurrentWeek ? "이번 주 기록" : "Timeline"}
-      </Link>
+      <div className="mb-10 flex items-center justify-between gap-4">
+        <Link href={isCurrentWeek ? "/" : "/timeline"} className="inline-flex h-8 items-center gap-1.5 text-[12px] text-[#77777c] hover:text-[#171719]">
+          <ArrowLeftIcon className="h-3.5 w-3.5" />
+          {isCurrentWeek ? "이번 주 기록" : "Timeline"}
+        </Link>
+        {isOwner && <NoteControls noteId={note.id} />}
+      </div>
 
       <article>
         <header>
@@ -67,11 +72,7 @@ export default async function NoteDetailPage({ params, searchParams }: NotePageP
           </Link>
         </header>
 
-        <div className="mt-10 max-w-[740px]">
-          {paragraphs.map((paragraph, index) => (
-            <p key={index} className="mb-5 whitespace-pre-wrap text-[15px] leading-[1.85] tracking-[-0.005em] text-[#3a3a3e] sm:text-[16px]">{paragraph}</p>
-          ))}
-        </div>
+        <RichText body={note.body} className="mt-10 max-w-[740px]" />
       </article>
 
       <DiscussionThread noteId={note.id} comments={note.comments} currentMember={currentMember} error={error} />

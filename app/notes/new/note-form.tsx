@@ -1,18 +1,39 @@
 "use client";
 
 import { useState } from "react";
-import { createReadingNote } from "@/app/actions/content";
+import { createReadingNote, updateReadingNote } from "@/app/actions/content";
+import { RichTextEditor } from "@/components/rich-text-editor";
+import { SubmitButton } from "@/components/submit-button";
 import type { Book } from "@/lib/models";
 
 const inputClass =
   "mt-2 block h-10 w-full border border-[#cdcdcf] bg-white px-3 text-[13px] text-[#242427] outline-none placeholder:text-[#77777c] focus:border-[#55555a]";
 
-export function NoteForm({ books }: { books: Book[] }) {
-  const [selection, setSelection] = useState(books[0]?.id ?? "new");
+type InitialNote = {
+  id: string;
+  title: string;
+  summary: string;
+  body: string;
+  bookId: string;
+};
+
+export function NoteForm({
+  books,
+  initialNote,
+}: {
+  books: Book[];
+  initialNote?: InitialNote;
+}) {
+  const initialBookExists = books.some((book) => book.id === initialNote?.bookId);
+  const [selection, setSelection] = useState(
+    initialBookExists ? initialNote!.bookId : books[0]?.id ?? "new",
+  );
   const isNewBook = selection === "new";
+  const action = initialNote ? updateReadingNote : createReadingNote;
 
   return (
-    <form action={createReadingNote} className="border-y border-[#dedee0]">
+    <form action={action} className="border-y border-[#dedee0]">
+      {initialNote && <input type="hidden" name="noteId" value={initialNote.id} />}
       <section className="grid gap-6 border-b border-[#e6e6e8] py-7 sm:grid-cols-[170px_minmax(0,1fr)]">
         <div>
           <p className="text-[12px] font-medium text-[#343438]">책</p>
@@ -71,29 +92,38 @@ export function NoteForm({ books }: { books: Book[] }) {
         <div className="space-y-5">
           <label className="block text-[11px] font-medium text-[#55555a]">
             제목
-            <input name="title" required maxLength={160} className={inputClass} placeholder="이번 독서에서 남은 생각" />
+            <input
+              name="title"
+              required
+              maxLength={160}
+              defaultValue={initialNote?.title}
+              className={inputClass}
+              placeholder="이번 독서에서 남은 생각"
+            />
           </label>
           <label className="block text-[11px] font-medium text-[#55555a]">
             한 줄 요약
-            <input name="summary" maxLength={240} className={inputClass} placeholder="리스트에 표시될 짧은 설명" />
-          </label>
-          <label className="block text-[11px] font-medium text-[#55555a]">
-            본문
-            <textarea
-              name="body"
-              required
-              rows={14}
-              className="mt-2 block min-h-[320px] w-full resize-y border border-[#cdcdcf] bg-white px-3.5 py-3 text-[14px] leading-7 text-[#2e2e31] outline-none placeholder:text-[#77777c] focus:border-[#55555a]"
-              placeholder={"읽으며 떠오른 생각을 자유롭게 적어주세요.\n\n문단은 빈 줄로 나눌 수 있습니다."}
+            <input
+              name="summary"
+              maxLength={240}
+              defaultValue={initialNote?.summary}
+              className={inputClass}
+              placeholder="리스트에 표시될 짧은 설명"
             />
           </label>
+          <div className="block text-[11px] font-medium text-[#55555a]">
+            <label htmlFor="note-body">본문</label>
+            <RichTextEditor initialValue={initialNote?.body} />
+          </div>
         </div>
       </section>
 
       <div className="flex justify-end py-5">
-        <button type="submit" className="h-10 bg-[#171719] px-5 text-[12px] font-medium text-white hover:bg-[#303033]">
-          기록 저장
-        </button>
+        <SubmitButton
+          idleLabel={initialNote ? "수정 내용 저장" : "독서 기록 제출"}
+          pendingLabel={initialNote ? "수정 중…" : "제출 중…"}
+          className="h-10 bg-[#171719] px-5 text-[12px] font-medium text-white hover:bg-[#303033]"
+        />
       </div>
     </form>
   );

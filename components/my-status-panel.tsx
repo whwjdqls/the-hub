@@ -17,7 +17,7 @@ export function MyStatusPanel({
   if (source !== "live" || !row) {
     return (
       <div className="mt-4 flex flex-col justify-between gap-2 border-b border-[#e6e6e8] pb-4 text-[11px] text-[#717176] sm:flex-row sm:items-center">
-        <span>매월 1회 · 기록 또는 댓글 미완료 시 패스로 해당 주 면제</span>
+        <span>매주 월요일 23:59 마감 · 기록 또는 댓글 미완료 시 패스로 해당 주 면제</span>
         <span className="font-mono text-[9px] uppercase tracking-[0.12em]">
           {source === "setup-required" ? "Check Supabase migration" : "Connect Supabase"}
         </span>
